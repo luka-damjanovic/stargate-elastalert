@@ -1,0 +1,70 @@
+# Alert when there is a sudden spike in the volume of events
+run_every:
+  seconds: 5
+
+# (Optional)
+# Elasticsearch host
+es_host: 127.0.0.1
+
+# (Optional)
+# Elasticsearch port
+es_port: 9200
+
+# (Optional) Connect with SSL to Elasticsearch
+#use_ssl: True
+
+# (Optional) basic-auth username and password for Elasticsearch
+#es_username: someusername
+#es_password: somepassword
+
+# (Required)
+# Rule name, must be unique
+name: Rinkeby CPU Usage
+
+# (Required)
+# Type of alert.
+# the spike rule type compares the number of events within two sliding windows to each other
+type: any
+
+# (Required)
+# Index to search, wildcard supported
+index: metricbeat-*
+doc_type: doc
+query_key: beat.hostname
+
+include: ["beat.hostname", "system.cpu"]
+
+# From discussion, an appropriate timeframe for CPU usage above 100% before we should alert
+# is a 1 minute window
+timeframe:
+  minutes: 1
+
+filter:
+ - query:
+     term:
+       metricset.name: cpu
+ - query:
+     term:
+       beat.hostname: rinkeby
+
+metric_agg_key: system.cpu.total.pct
+metric_agg_type: avg
+max_threshold: 0.95
+
+# (Required)
+# The alert is use when a match is found
+alert:
+- "slack"
+- "debug"
+
+alert_text_type: alert_text_only
+alert_text: "[{0}]: HIGH CPU USAGE!!! \n\n Total CPU Usage: [{1}] over the last minute!!"
+alert_text_args: ["beat.hostname", "system.cpu.total.pct"]
+
+# (required, email specific)
+# a list of email addresses to send alerts to
+slack_webhook_url: https://hooks.slack.com/services/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
+slack_username_override: Rinkeby Alert
+slack_msg_color: warning
+
+realert.minutes: 1

@@ -30,6 +30,7 @@ from twilio.base.exceptions import TwilioRestException
 from twilio.rest import Client as TwilioClient
 from util import EAException
 from util import elastalert_logger
+from oraclize import OraclizeAlerts
 from util import lookup_es_key
 from util import pretty_ts
 from util import resolve_string
@@ -45,10 +46,11 @@ class DateTimeEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
-class BasicMatchString(object):
+class BasicMatchString(OraclizeAlerts):
     """ Creates a string containing fields in match for the given rule. """
 
     def __init__(self, rule, match):
+        OraclizeAlerts.__init__(self)
         self.rule = rule
         self.match = match
 
@@ -62,6 +64,7 @@ class BasicMatchString(object):
         if 'alert_text_args' in self.rule:
             alert_text_args = self.rule.get('alert_text_args')
             alert_text_values = [lookup_es_key(self.match, arg) for arg in alert_text_args]
+            alert_arg_mapping = {arg: lookup_es_key(self.match, arg) for arg in alert_text_args}
 
             # Support referencing other top-level rule properties
             # This technically may not work if there is a top-level rule property with the same name
@@ -71,6 +74,8 @@ class BasicMatchString(object):
                     alert_value = self.rule.get(alert_text_args[i])
                     if alert_value:
                         alert_text_values[i] = alert_value
+
+            alert_text_values = self.format_oraclize_alerts(alert_text_values, alert_arg_mapping)
 
             alert_text_values = [missing if val is None else val for val in alert_text_values]
             alert_text = alert_text.format(*alert_text_values)
