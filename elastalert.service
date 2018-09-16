@@ -1,0 +1,13 @@
+[Unit]
+Description=Oraclize ElastAlert
+ 
+[Service]
+Type=simple
+User=root
+PermissionsStartOnly=true
+ExecStartPre=/bin/bash -c "/bin/systemctl set-environment NOW=$(date +'%Y-%%m-%dT%%H:%M:%S')"
+ExecStart=/usr/bin/python /etc/elastalert/elastalert/elastalert.py --config /etc/elastalert/config.yaml --start ${NOW}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
