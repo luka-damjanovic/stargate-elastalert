@@ -76,6 +76,8 @@ class BasicMatchString(OraclizeAlerts):
                         alert_text_values[i] = alert_value
 
             alert_text_values = self.format_oraclize_alerts(alert_text_values, alert_arg_mapping)
+            if not alert_text_values:
+                return
 
             alert_text_values = [missing if val is None else val for val in alert_text_values]
             alert_text = alert_text.format(*alert_text_values)
@@ -150,6 +152,8 @@ class BasicMatchString(OraclizeAlerts):
                 self._add_top_counts()
             if self.rule.get('alert_text_type') != 'exclude_fields':
                 self._add_match_items()
+        if self.text == '\n\n':
+            return False
         return self.text
 
 
@@ -250,10 +254,17 @@ class Alerter(object):
         body = self.get_aggregation_summary_text(matches)
         if self.rule.get('alert_text_type') != 'aggregation_summary_only':
             for match in matches:
-                body += unicode(BasicMatchString(self.rule, match))
-                # Separate text of aggregated alerts with dashes
-                if len(matches) > 1:
-                    body += '\n----------------------------------------\n'
+                try:
+                    _body = unicode(BasicMatchString(self.rule, match))
+                except TypeError:
+                    _body = None
+                if not _body:
+                    return
+                else:
+                    body += _body
+                    # Separate text of aggregated alerts with dashes
+                    if len(matches) > 1:
+                        body += '\n----------------------------------------\n'
         return body
 
     def get_aggregation_summary_text__maximum_width(self):
@@ -389,7 +400,10 @@ class DebugAlerter(Alerter):
                     'Alert for %s, %s at %s:' % (self.rule['name'], match[qk], lookup_es_key(match, self.rule['timestamp_field'])))
             else:
                 elastalert_logger.info('Alert for %s at %s:' % (self.rule['name'], lookup_es_key(match, self.rule['timestamp_field'])))
-            elastalert_logger.info(unicode(BasicMatchString(self.rule, match)))
+            try:
+                elastalert_logger.info(unicode(BasicMatchString(self.rule, match)))
+            except TypeError:
+                continue
 
     def get_info(self):
         return {'type': 'debug'}
@@ -1142,6 +1156,8 @@ class SlackAlerter(Alerter):
 
     def alert(self, matches):
         body = self.create_alert_body(matches)
+        if not body:
+            return
 
         body = self.format_body(body)
         # post to slack

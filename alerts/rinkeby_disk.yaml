@@ -66,4 +66,4 @@ slack_webhook_url: https://hooks.slack.com/services/T69EDR00M/BBU3LMHH9/KrhWSm30
 slack_username_override: Rinkeby Alert
 slack_msg_color: warning
 
-realert.minutes: 1
+realert.minutes: 15
